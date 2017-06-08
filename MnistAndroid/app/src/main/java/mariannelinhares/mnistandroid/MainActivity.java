@@ -19,6 +19,7 @@ package mariannelinhares.mnistandroid;
 */
 
 import android.app.Activity;
+import android.content.res.AssetManager;
 import android.graphics.PointF;
 import android.os.Bundle;
 import android.view.MotionEvent;
@@ -26,6 +27,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -85,6 +90,10 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         classBtn = (Button)findViewById(R.id.btn_class);
         classBtn.setOnClickListener(this);
 
+        //benchmark button
+        classBtn = (Button)findViewById(R.id.btn_benchmark);
+        classBtn.setOnClickListener(this);
+
         // res text
         resText = (TextView)findViewById(R.id.tfRes);
 
@@ -124,7 +133,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
     @Override
     public void onClick(View view){
-
+        int dummy = view.getId();
         if(view.getId() == R.id.btn_clear) {
             drawModel.clear();
             drawView.reset();
@@ -146,6 +155,47 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 result += "\nwith probability: " + res.getConf();
                 resText.setText(result);
             }
+        }
+        else if(view.getId() == R.id.btn_benchmark){
+            long total_time = 0;
+            int image_cnt = 0;
+            int image_max = 1;
+            try {
+                ////////////////////////////////////////////////////////////////
+                AssetManager assetManager = getAssets();
+                InputStream ims = assetManager.open("output.txt");
+                InputStreamReader r = new InputStreamReader(ims);
+                BufferedReader in = new BufferedReader(r);
+
+                String str;
+                String strarr[];
+                while ((str = in.readLine()) != null) {
+                    strarr = str.split(" ");
+                    float pixels[] = new float[strarr.length];
+                    image_cnt++;
+                    for(int i=0 ; i < strarr.length ; i ++){
+                        pixels[i] = Float.parseFloat(strarr[i]);
+                    }
+                    long start = System.currentTimeMillis();
+                    final Classification res = classifier.recognize(pixels);
+                    total_time += ( System.currentTimeMillis() - start );
+                    String result = "cur image cnt : " + image_cnt;
+                    resText.setText(result);
+                    if(image_cnt == image_max && image_max != -1) {
+                        break;
+                    }
+                }
+                in.close();
+                ////////////////////////////////////////////////////////////////
+            } catch (IOException e) {
+                System.err.println(e); // 에러가 있다면 메시지 출력
+            }
+
+            String result = "Result: ";
+            result += "\nbenchmark total time(ms): " + total_time;
+            result += "\ntotal test images count : " + image_cnt;
+            resText.setText(result);
+
         }
     }
 
